@@ -1,0 +1,14 @@
+[package]
+name = "ec2_terminator"
+version = "0.1.0"
+edition = "2018"
+
+[dependencies]
+lambda_runtime = "0.11.3"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+log = "0.4"
+simple_logger = "5.0.0"
+aws-config = { version = "0.0.26-alpha", features = ["default"] }
+aws-sdk-ec2 = { version = "0.0.26-alpha", features = ["default"] }
+tokio = { version = "1", features = ["full"] }

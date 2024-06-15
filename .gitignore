@@ -1,0 +1,12 @@
+# Ignore built files
+/target/
+
+# Ignore IDE/editor specific files
+.idea/
+.vscode/
+*.iml
+
+# Ignore temporary files
+*.swp
+*.swo
+.DS_Store

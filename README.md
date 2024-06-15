@@ -1,0 +1,85 @@
+# EC2 Terminator Lambda Function
+
+## Overview
+
+This project contains a Rust-based AWS Lambda function that stops EC2 instances based on specific tags. The function is designed to look for EC2 instances with the tag `AutoTerminate` set to `true` and stop them.
+
+## Project Structure
+
+- `Cargo.toml`: Contains the metadata and dependencies for the Rust project.
+- `Cargo.lock`: Locks the dependencies to specific versions.
+- `src/main.rs`: The main Rust source code file containing the Lambda function logic.
+- `.gitignore`: Specifies which files and directories Git should ignore.
+
+## Prerequisites
+
+- Rust programming language installed.
+- Docker installed (for building the Lambda function for AWS).
+- AWS CLI configured with the necessary permissions.
+
+## Constants
+
+- `TAG_NAME`: The name of the tag used to identify EC2 instances for stopping.
+- `TAG_VALUE`: The value of the tag used to identify EC2 instances for stopping.
+
+```rust
+const TAG_NAME: &str = "AutoTerminate";
+const TAG_VALUE: &str = "true";
+```
+
+## Building and Deploying the Lambda Function
+
+### Step 1: Build the Lambda Function
+
+Use Docker to build the Lambda function for the `x86_64-unknown-linux-musl` target:
+
+```sh
+docker build -t ec2-terminator .
+container_id=$(docker create ec2-terminator)
+docker cp ${container_id}:/app/bootstrap ./bootstrap
+docker rm ${container_id}
+zip lambda.zip bootstrap
+```
+
+### Step 2: Deploy the Lambda Function
+
+#### First Deployment
+
+Create the Lambda function using the AWS CLI:
+
+```sh
+aws lambda create-function --function-name ec2Terminator \
+  --handler bootstrap \
+  --runtime provided.al2 \
+  --role arn:aws:iam::741238249954:role/service-role/avbo-test-role-h7x0j96b \
+  --zip-file fileb://lambda.zip --region eu-central-1
+```
+
+#### Redeploying
+
+If the Lambda function already exists, you can update it:
+
+```sh
+aws lambda update-function-code --function-name ec2Terminator --zip-file fileb://lambda.zip --region eu-central-1
+```
+
+## How It Works
+
+1. **Initialization**:
+    - The Lambda function initializes and sets up logging.
+
+2. **Event Handling**:
+    - The function is triggered by an AWS event (such as a CloudWatch event or API Gateway request).
+    - It retrieves the AWS configuration and creates an EC2 client.
+
+3. **Instance Identification**:
+    - The function describes EC2 instances with the tag `AutoTerminate` set to `true`.
+
+4. **Stopping Instances**:
+    - It stops the identified EC2 instances.
+    - Logs the details of stopped instances for audit purposes.
+
+5. **Response**:
+    - The function returns a response indicating the instances that were stopped.
+
+This setup ensures that any EC2 instance tagged with `AutoTerminate: true` will be automatically stopped when the Lambda function is triggered, helping to manage costs and resources efficiently.
