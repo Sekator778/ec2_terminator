@@ -4,7 +4,7 @@ use log::info;
 pub const TAG_NAME: &str = "AutoTerminate";
 pub const TAG_VALUE: &str = "true";
 
-pub async fn stop_instances_with_tag(client: &Ec2Client) -> Result<Vec<String>, Ec2Error> {
+pub async fn terminate_instances_with_tag(client: &Ec2Client) -> Result<Vec<String>, Ec2Error> {
     info!("Fetching instances with tag {}={}", TAG_NAME, TAG_VALUE);
     let instances = client.describe_instances()
         .filters(Filter::builder()
@@ -15,8 +15,8 @@ pub async fn stop_instances_with_tag(client: &Ec2Client) -> Result<Vec<String>, 
         .await?;
 
     let mut instance_ids = Vec::new();
-    for reservation in instances.reservations().unwrap_or_default() {
-        for instance in reservation.instances().unwrap_or_default() {
+    for reservation in instances.reservations().unwrap_or(&[]) {
+        for instance in reservation.instances().unwrap_or(&[]) {
             if let Some(instance_id) = instance.instance_id() {
                 instance_ids.push(instance_id.to_string());
                 info!("Found instance with ID: {}", instance_id);
@@ -25,12 +25,12 @@ pub async fn stop_instances_with_tag(client: &Ec2Client) -> Result<Vec<String>, 
     }
 
     if !instance_ids.is_empty() {
-        info!("Stopping instances with IDs: {:?}", instance_ids);
-        client.stop_instances()
+        info!("Terminating instances with IDs: {:?}", instance_ids);
+        client.terminate_instances()
             .set_instance_ids(Some(instance_ids.clone()))
             .send()
             .await?;
-        info!("Stop request sent for instances: {:?}", instance_ids);
+        info!("Terminate request sent for instances: {:?}", instance_ids);
     } else {
         info!("No instances found with tag {}={}", TAG_NAME, TAG_VALUE);
     }
@@ -48,7 +48,7 @@ pub async fn delete_attached_volumes(client: &Ec2Client, instance_ids: &[String]
             .send()
             .await?;
 
-        for volume in volumes.volumes().unwrap_or_default() {
+        for volume in volumes.volumes().unwrap_or(&[]) {
             if let Some(volume_id) = volume.volume_id() {
                 info!("Deleting volume with ID: {}", volume_id);
                 client.delete_volume()
@@ -69,8 +69,8 @@ pub async fn delete_security_groups(client: &Ec2Client, instance_ids: &[String])
             .send()
             .await?;
 
-        for reservation in instances.reservations().unwrap_or_default() {
-            for instance in reservation.instances().unwrap_or_default() {
+        for reservation in instances.reservations().unwrap_or(&[]) {
+            for instance in reservation.instances().unwrap_or(&[]) {
                 if let Some(sgs) = instance.security_groups() {
                     for sg in sgs {
                         if let Some(sg_id) = sg.group_id() {
@@ -96,10 +96,10 @@ mod tests {
     use tokio_test::block_on;
 
     #[tokio::test]
-    async fn test_stop_instances_with_tag() {
+    async fn test_terminate_instances_with_tag() {
         let config = Config::builder().build();
         let client = Ec2Client::from_conf(config);
-        let result = stop_instances_with_tag(&client).await;
+        let result = terminate_instances_with_tag(&client).await;
         assert!(result.is_ok());
     }
 

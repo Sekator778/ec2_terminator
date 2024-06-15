@@ -22,8 +22,7 @@ struct Response {
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     SimpleLogger::new().init().unwrap();
-    let region_provider = RegionProviderChain::default_provider().or_else("us-west-2");
-    let config = aws_config::load_from_env().await;
+    let config = aws_config::load_defaults().await;
 
     let func = service_fn(my_handler);
 
@@ -54,22 +53,21 @@ async fn add_lambda_tags(config: &aws_config::SdkConfig) -> Result<(), Error> {
 
 async fn my_handler(event: LambdaEvent<Request>) -> Result<Response, Error> {
     info!("Received event: {:?}", event);
-    let region_provider = RegionProviderChain::default_provider().or_else("us-west-2");
-    let config = aws_config::load_from_env().await;
+    let config = aws_config::load_defaults().await;
     let ec2_client = Ec2Client::new(&config);
 
-    match stop_instances_with_tag(&ec2_client).await {
-        Ok(stopped_instances) => {
-            delete_attached_volumes(&ec2_client, &stopped_instances).await?;
-            delete_security_groups(&ec2_client, &stopped_instances).await?;
+    match terminate_instances_with_tag(&ec2_client).await {
+        Ok(terminated_instances) => {
+            delete_attached_volumes(&ec2_client, &terminated_instances).await?;
+            delete_security_groups(&ec2_client, &terminated_instances).await?;
             let resp = Response {
-                msg: format!("Stopped instances: {:?}, deleted attached volumes, and deleted security groups", stopped_instances),
+                msg: format!("Terminated instances: {:?}, deleted attached volumes, and deleted security groups", terminated_instances),
             };
-            info!("Successfully stopped instances, deleted attached volumes, and deleted security groups: {:?}", stopped_instances);
+            info!("Successfully terminated instances, deleted attached volumes, and deleted security groups: {:?}", terminated_instances);
             Ok(resp)
         }
         Err(e) => {
-            error!("Failed to stop instances or delete resources: {}", e);
+            error!("Failed to terminate instances or delete resources: {}", e);
             Err(e.into())
         }
     }
