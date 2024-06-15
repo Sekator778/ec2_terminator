@@ -28,22 +28,22 @@ async fn my_handler(event: LambdaEvent<Request>) -> Result<Response, Error> {
     let config = aws_config::load_from_env().await;
     let client = Client::new(&config);
 
-    match stop_instances_with_tag(&client).await {
-        Ok(stopped_instances) => {
+    match terminate_instances_with_tag(&client).await {
+        Ok(terminated_instances) => {
             let resp = Response {
-                msg: format!("Stopped instances: {:?}", stopped_instances),
+                msg: format!("Terminated instances: {:?}", terminated_instances),
             };
-            info!("Successfully stopped instances: {:?}", stopped_instances);
+            info!("Successfully terminated instances: {:?}", terminated_instances);
             Ok(resp)
         }
         Err(e) => {
-            error!("Failed to stop instances: {}", e);
+            error!("Failed to terminate instances: {}", e);
             Err(e.into())
         }
     }
 }
 
-async fn stop_instances_with_tag(client: &Client) -> Result<Vec<String>, Ec2Error> {
+async fn terminate_instances_with_tag(client: &Client) -> Result<Vec<String>, Ec2Error> {
     info!("Fetching instances with tag {}={}", TAG_NAME, TAG_VALUE);
     let instances = client.describe_instances()
         .filters(aws_sdk_ec2::model::Filter::builder()
@@ -64,12 +64,12 @@ async fn stop_instances_with_tag(client: &Client) -> Result<Vec<String>, Ec2Erro
     }
 
     if !instance_ids.is_empty() {
-        info!("Stopping instances with IDs: {:?}", instance_ids);
-        client.stop_instances()
+        info!("Terminating instances with IDs: {:?}", instance_ids);
+        client.terminate_instances()
             .set_instance_ids(Some(instance_ids.clone()))
             .send()
             .await?;
-        info!("Stop request sent for instances: {:?}", instance_ids);
+        info!("Terminate request sent for instances: {:?}", instance_ids);
     } else {
         info!("No instances found with tag {}={}", TAG_NAME, TAG_VALUE);
     }
