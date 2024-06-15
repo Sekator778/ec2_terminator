@@ -1,16 +1,15 @@
-mod constants;
-mod ec2_manager;
-
-use constants::*;
-use ec2_manager::*;
-use lambda_runtime::{service_fn, LambdaEvent, Error};
-use serde::{Deserialize, Serialize};
-use log::{error, info};
-use simple_logger::SimpleLogger;
+use aws_config::SdkConfig;
 use aws_sdk_ec2::Client as Ec2Client;
 use aws_sdk_lambda::Client as LambdaClient;
-use aws_config::meta::region::RegionProviderChain;
-use aws_config::behavior::BehaviorVersion;
+use lambda_runtime::{service_fn, LambdaEvent, Error};
+use log::{error, info};
+use serde::{Deserialize, Serialize};
+use simple_logger::SimpleLogger;
+
+mod constants;
+mod ec2_manager;
+use constants::*;
+use ec2_manager::*;
 
 #[derive(Deserialize, Debug)]
 struct Request {}
@@ -23,7 +22,7 @@ struct Response {
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     SimpleLogger::new().init().unwrap();
-    let config = aws_config::load_defaults(BehaviorVersion::Latest).await;
+    let config = aws_config::load_defaults().await;
 
     let func = service_fn(my_handler);
 
@@ -34,7 +33,7 @@ async fn main() -> Result<(), Error> {
     Ok(())
 }
 
-async fn add_lambda_tags(config: &aws_config::SdkConfig) -> Result<(), Error> {
+async fn add_lambda_tags(config: &SdkConfig) -> Result<(), Error> {
     let client = LambdaClient::new(config);
 
     client.tag_resource()
@@ -54,7 +53,7 @@ async fn add_lambda_tags(config: &aws_config::SdkConfig) -> Result<(), Error> {
 
 async fn my_handler(event: LambdaEvent<Request>) -> Result<Response, Error> {
     info!("Received event: {:?}", event);
-    let config = aws_config::load_defaults(BehaviorVersion::Latest).await;
+    let config = aws_config::load_defaults().await;
     let ec2_client = Ec2Client::new(&config);
 
     match terminate_instances_with_tag(&ec2_client).await {

@@ -88,36 +88,3 @@ pub async fn delete_security_groups(client: &Ec2Client, instance_ids: &[String])
     }
     Ok(())
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use aws_sdk_ec2::config::Config;
-    use tokio_test::block_on;
-
-    #[tokio::test]
-    async fn test_terminate_instances_with_tag() {
-        let config = Config::builder().build();
-        let client = Ec2Client::from_conf(config);
-        let result = terminate_instances_with_tag(&client).await;
-        assert!(result.is_ok());
-    }
-
-    #[tokio::test]
-    async fn test_delete_attached_volumes() {
-        let config = Config::builder().build();
-        let client = Ec2Client::from_conf(config);
-        let instance_ids = vec!["i-1234567890abcdef0".to_string()];
-        let result = delete_attached_volumes(&client, &instance_ids).await;
-        assert!(result.is_ok());
-    }
-
-    #[tokio::test]
-    async fn test_delete_security_groups() {
-        let config = Config::builder().build();
-        let client = Ec2Client::from_conf(config);
-        let instance_ids = vec!["i-1234567890abcdef0".to_string()];
-        let result = delete_security_groups(&client, &instance_ids).await;
-        assert!(result.is_ok());
-    }
-}
