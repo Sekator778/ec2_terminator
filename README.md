@@ -2,7 +2,7 @@
 
 ## Overview
 
-This project contains a Rust-based AWS Lambda function that stops EC2 instances based on specific tags. The function is designed to look for EC2 instances with the tag `AutoTerminate` set to `true` and stop them.
+This project contains a Rust-based AWS Lambda function that terminates EC2 instances based on specific tags. The function is designed to look for EC2 instances with the tag `AutoTerminate` set to `true` and terminate them. It also deletes associated security groups after the instances are terminated.
 
 ## Project Structure
 
@@ -19,8 +19,8 @@ This project contains a Rust-based AWS Lambda function that stops EC2 instances 
 
 ## Constants
 
-- `TAG_NAME`: The name of the tag used to identify EC2 instances for stopping.
-- `TAG_VALUE`: The value of the tag used to identify EC2 instances for stopping.
+- `TAG_NAME`: The name of the tag used to identify EC2 instances for termination.
+- `TAG_VALUE`: The value of the tag used to identify EC2 instances for termination.
 
 ```rust
 const TAG_NAME: &str = "AutoTerminate";
@@ -66,20 +66,21 @@ aws lambda update-function-code --function-name ec2Terminator --zip-file fileb:/
 ## How It Works
 
 1. **Initialization**:
-    - The Lambda function initializes and sets up logging.
+   - The Lambda function initializes and sets up logging.
 
 2. **Event Handling**:
-    - The function is triggered by an AWS event (such as a CloudWatch event or API Gateway request).
-    - It retrieves the AWS configuration and creates an EC2 client.
+   - The function is triggered by an AWS event (such as a CloudWatch event or API Gateway request).
+   - It retrieves the AWS configuration and creates an EC2 client.
 
 3. **Instance Identification**:
-    - The function describes EC2 instances with the tag `AutoTerminate` set to `true`.
+   - The function describes EC2 instances with the tag `AutoTerminate` set to `true`.
 
-4. **Stopping Instances**:
-    - It stops the identified EC2 instances.
-    - Logs the details of stopped instances for audit purposes.
+4. **Terminating Instances**:
+   - It terminates the identified EC2 instances.
+   - Waits until the instances are fully terminated.
+   - Deletes the associated security groups of the terminated instances.
+   - Logs the details of terminated instances and deleted security groups for audit purposes.
 
 5. **Response**:
-    - The function returns a response indicating the instances that were stopped.
+   - The function returns a response indicating the instances that were terminated and security groups that were deleted.
 
-This setup ensures that any EC2 instance tagged with `AutoTerminate: true` will be automatically stopped when the Lambda function is triggered, helping to manage costs and resources efficiently.
